@@ -9,6 +9,7 @@ import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmTextareaImports } from '@spartan-ng/helm/textarea';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 
+import { CustomerAuthService } from '../../../../core/services/customer-auth.service';
 import { PedidoService } from '../../../../core/services/pedido.service';
 import { CartStore } from '../../../cart/cart.store';
 
@@ -285,15 +286,17 @@ import { CartStore } from '../../../cart/cart.store';
 })
 export class CheckoutPage {
   private readonly pedidoService = inject(PedidoService);
+  private readonly customerAuth = inject(CustomerAuthService);
   readonly cart = inject(CartStore);
   private readonly router = inject(Router);
+  private readonly customerSession = this.customerAuth.session();
 
   readonly submitting = signal(false);
 
   readonly form = new FormGroup({
-    clienteNombre: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    clienteNombre: new FormControl(this.customerSession?.nombre ?? '', { nonNullable: true, validators: [Validators.required] }),
     celular: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    email: new FormControl('', { nonNullable: true, validators: [Validators.email] }),
+    email: new FormControl(this.customerSession?.email ?? '', { nonNullable: true, validators: [Validators.email] }),
     direccion: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     ciudad: new FormControl('', { nonNullable: true }),
     referencia: new FormControl('', { nonNullable: true }),

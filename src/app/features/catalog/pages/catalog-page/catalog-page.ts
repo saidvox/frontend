@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
@@ -52,6 +53,7 @@ export class CatalogPage implements OnInit {
   private readonly productoService = inject(ProductoService);
   private readonly categoriaService = inject(CategoriaService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly cart = inject(CartStore);
 
   readonly topCategories = signal<Categoria[]>([]);
@@ -60,6 +62,9 @@ export class CatalogPage implements OnInit {
 
   ngOnInit(): void {
     this.loadTopCategories();
+    this.productoService.productChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.reloadVisibleProducts());
   }
 
   viewAll(categoryId: number): void {
@@ -107,5 +112,16 @@ export class CatalogPage implements OnInit {
           this.productsByCategory.update(prev => ({ ...prev, [categoryId]: [] }));
         },
       });
+  }
+
+  private reloadVisibleProducts(): void {
+    const categories = this.topCategories();
+    if (categories.length === 0) {
+      this.loadTopCategories();
+      return;
+    }
+
+    this.productsByCategory.set({});
+    categories.forEach((category) => this.loadProductsForCategory(category.id));
   }
 }

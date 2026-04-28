@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -9,7 +8,7 @@ import { Producto } from '../../../core/models/producto.model';
 
 @Component({
   selector: 'app-product-card',
-  imports: [CurrencyPipe, ...HlmBadgeImports, ...HlmButtonImports, ...HlmCardImports, RouterLink],
+  imports: [...HlmBadgeImports, ...HlmButtonImports, ...HlmCardImports, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article hlmCard class="product-card">
@@ -34,7 +33,9 @@ import { Producto } from '../../../core/models/producto.model';
         </div>
 
         <div class="product-meta">
-          <strong>{{ product().precio | currency: 'PEN' : 'symbol' : '1.2-2' }}</strong>
+          <strong class="price-text">
+            <span class="currency">S/</span>{{ product().precio.toFixed(2) }}
+          </strong>
           <span [class.stock-low]="product().stock <= 5">
             {{ product().stock }} en stock
           </span>

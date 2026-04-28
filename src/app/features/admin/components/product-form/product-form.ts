@@ -12,49 +12,68 @@ import { Categoria } from '../../../../core/models/categoria.model';
   imports: [...HlmButtonImports, ...HlmCardImports, ...HlmInputImports, ...HlmTextareaImports, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form hlmCard class="form-panel" [formGroup]="form()" (ngSubmit)="submitted.emit()">
-      <label>
-        Nombre
-        <input hlmInput formControlName="nombre" />
-      </label>
-      <label>
-        Descripcion
-        <textarea hlmTextarea formControlName="descripcion" rows="4"></textarea>
-      </label>
-      <div class="form-grid">
-        <label>
-          Precio
-          <input hlmInput formControlName="precio" type="number" min="0.01" step="0.01" />
+    <form [formGroup]="form()" (ngSubmit)="submitted.emit()" class="flex flex-col gap-6">
+      <div class="space-y-4">
+        <label hlmLabel class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nombre del producto</span>
+          <input hlmInput formControlName="nombre" placeholder="Ej. Espresso Doble" class="bg-secondary/30 border-transparent focus:bg-background transition-colors" />
         </label>
-        <label>
-          Stock
-          <input hlmInput formControlName="stock" type="number" min="0" step="1" />
+        
+        <label hlmLabel class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descripción</span>
+          <textarea hlmTextarea formControlName="descripcion" rows="3" placeholder="Detalles del producto..." class="bg-secondary/30 border-transparent focus:bg-background transition-colors resize-none"></textarea>
+        </label>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <label hlmLabel class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Precio (S/)</span>
+            <input hlmInput formControlName="precio" type="number" min="0.01" step="0.01" class="bg-secondary/30 border-transparent focus:bg-background transition-colors font-mono" />
+          </label>
+          <label hlmLabel class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stock Actual</span>
+            <input hlmInput formControlName="stock" type="number" min="0" step="1" class="bg-secondary/30 border-transparent focus:bg-background transition-colors font-mono" />
+          </label>
+        </div>
+        
+        <label hlmLabel class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Imagen URL</span>
+          <input hlmInput formControlName="imagenUrl" placeholder="https://..." class="bg-secondary/30 border-transparent focus:bg-background transition-colors" />
+        </label>
+        
+        <label hlmLabel class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoría</span>
+          <select hlmInput formControlName="categoriaId" class="bg-secondary/30 border-transparent focus:bg-background transition-colors h-10 px-3 py-2 rounded-md appearance-none">
+            @for (category of categories(); track category.id) {
+              <option [value]="category.id">{{ category.nombre }}</option>
+            }
+          </select>
+        </label>
+        
+        <label hlmLabel class="flex items-center gap-3 p-4 rounded-lg bg-secondary/20 border border-border/50 cursor-pointer hover:bg-secondary/30 transition-colors mt-2">
+          <input formControlName="activo" type="checkbox" class="w-4 h-4 rounded border-input bg-background text-primary focus:ring-primary accent-primary" />
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold">Producto activo</span>
+            <span class="text-xs text-muted-foreground">Visible para los clientes en el catálogo</span>
+          </div>
         </label>
       </div>
-      <label>
-        Imagen URL
-        <input hlmInput formControlName="imagenUrl" />
-      </label>
-      <label>
-        Categoria
-        <select formControlName="categoriaId">
-          @for (category of categories(); track category.id) {
-            <option [value]="category.id">{{ category.nombre }}</option>
-          }
-        </select>
-      </label>
-      <label class="checkbox-row">
-        <input formControlName="activo" type="checkbox" />
-        Producto activo
-      </label>
-      <button hlmBtn size="lg" type="submit" [disabled]="form().invalid">
-        Guardar producto
-      </button>
+      
+      <div class="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-border/50">
+        <button hlmBtn variant="ghost" type="button" (click)="cancelled.emit()" class="text-muted-foreground">
+          Cancelar
+        </button>
+        <button hlmBtn type="submit" [disabled]="form().invalid || submitting()" class="px-8 shadow-md">
+          {{ submitLabel() }}
+        </button>
+      </div>
     </form>
   `,
 })
 export class ProductForm {
   form = input.required<FormGroup>();
   categories = input.required<Categoria[]>();
+  submitLabel = input('Guardar producto');
+  submitting = input(false);
   submitted = output<void>();
+  cancelled = output<void>();
 }

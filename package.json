@@ -3,10 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --no-hmr",
+    "dev": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck:watch": "tsc --noEmit -p tsconfig.app.json --watch",
+    "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "serve:ssr:nombre-proyecto": "node dist/nombre-proyecto/server/server.mjs"
   },
   "private": true,

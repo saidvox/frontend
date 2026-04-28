@@ -1,5 +1,5 @@
-import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -16,7 +16,6 @@ import { ProductCarousel } from '../../components/product-carousel/product-carou
 @Component({
   selector: 'app-product-detail-page',
   imports: [
-    CurrencyPipe,
     ...HlmBadgeImports,
     ...HlmButtonImports,
     ...HlmCardImports,
@@ -62,7 +61,9 @@ import { ProductCarousel } from '../../components/product-carousel/product-carou
             
             <div class="flex flex-col gap-2 pt-6 border-t border-border/50">
               <div class="flex items-end justify-between">
-                <strong class="text-4xl font-serif text-primary">{{ product()?.precio | currency: 'PEN' : 'symbol' : '1.2-2' }}</strong>
+                <strong class="price-text is-large">
+                  <span class="currency">S/</span>{{ product()?.precio?.toFixed(2) }}
+                </strong>
                 <span class="text-sm font-medium px-3 py-1 rounded-full bg-secondary/50" 
                       [class.text-destructive]="(product()?.stock ?? 0) < 10" 
                       [class.text-muted-foreground]="(product()?.stock ?? 0) >= 10">
@@ -109,30 +110,49 @@ export class ProductDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly productoService = inject(ProductoService);
   private readonly cart = inject(CartStore);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly product = signal<ProductoDetalle | null>(null);
   readonly relatedProducts = signal<Producto[]>([]);
   readonly loading = signal(true);
+  readonly currentProductId = signal<number | null>(null);
 
   ngOnInit(): void {
+    this.productoService.productChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const id = this.currentProductId();
+        if (id) {
+          this.loadProduct(id, false);
+        }
+      });
+
     // Escuchar cambios de parametros para recargar si navegamos desde productos relacionados a otro detalle
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id'));
       if (id) {
+        this.currentProductId.set(id);
         this.loadProduct(id);
       }
     });
   }
 
-  loadProduct(id: number): void {
+  loadProduct(id: number, scrollToTop = true): void {
     this.loading.set(true);
     // Hacer scroll arriba al cargar un nuevo producto
-    if (typeof window !== 'undefined') {
+    if (scrollToTop && typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     this.productoService.obtenerPorId(id).subscribe({
       next: (product) => {
+        if (!product.activo) {
+          this.product.set(null);
+          this.relatedProducts.set([]);
+          this.loading.set(false);
+          return;
+        }
+
         this.product.set(product);
         this.loading.set(false);
         this.loadRelatedProducts(product);

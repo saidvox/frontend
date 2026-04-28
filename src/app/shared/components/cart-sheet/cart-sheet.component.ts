@@ -7,7 +7,7 @@ import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { provideIcons } from '@ng-icons/core';
 import { lucideShoppingCart, lucideTrash2, lucidePlus, lucideMinus } from '@ng-icons/lucide';
 import { CartStore } from '../../../features/cart/cart.store';
-import { AuthService } from '../../../core/services/auth.service';
+import { CustomerAuthService } from '../../../core/services/customer-auth.service';
 import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog';
 
 @Component({
@@ -15,6 +15,27 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
   imports: [...BrnSheetImports, ...HlmSheetImports, ...HlmButtonImports, HlmIconImports, RouterLink, UserLoginDialogComponent],
   providers: [provideIcons({ lucideShoppingCart, lucideTrash2, lucidePlus, lucideMinus })],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    :host ::ng-deep hlm-sheet-content {
+      transition-duration: 280ms;
+      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, opacity;
+    }
+
+    :host ::ng-deep hlm-sheet-overlay {
+      transition-duration: 220ms;
+    }
+
+    .cart-sheet-item {
+      border-bottom: 1px solid color-mix(in srgb, var(--border), transparent 50%);
+      padding-bottom: 16px;
+    }
+
+    .cart-sheet-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+  `],
   template: `
     <hlm-sheet side="right">
       <button hlmBtn variant="ghost" size="icon" class="relative" brnSheetTrigger>
@@ -26,7 +47,7 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
         }
       </button>
       
-      <hlm-sheet-content *brnSheetContent="let ctx" class="w-full sm:w-[450px] sm:max-w-[90vw] bg-background border-l flex flex-col p-0">
+      <hlm-sheet-content *brnSheetContent="let ctx" class="w-full sm:w-[450px] sm:max-w-[90vw] bg-background border-l flex flex-col p-0 shadow-2xl">
         
         <hlm-sheet-header class="px-6 py-4 border-b flex flex-col justify-center">
           <h3 hlmSheetTitle class="text-lg font-semibold tracking-tight text-foreground font-sans">Tu Carrito</h3>
@@ -47,11 +68,13 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
           } @else {
             <div class="flex flex-col gap-5">
               @for(item of cart.items(); track item.producto.id) {
-                <div class="flex items-start justify-between gap-4">
+                <div class="cart-sheet-item flex items-start justify-between gap-4">
                   <!-- Detalles del producto -->
                   <div class="flex flex-col gap-1 flex-1">
                     <span class="font-semibold text-sm text-foreground">{{item.producto.nombre}}</span>
-                    <span class="text-sm text-muted-foreground">PEN {{ item.producto.precio.toFixed(2) }}</span>
+                    <span class="price-text text-sm text-muted-foreground">
+                      <span class="currency">S/</span>{{ item.producto.precio.toFixed(2) }}
+                    </span>
                     
                     <!-- Controles de cantidad -->
                     <div class="flex items-center gap-3 mt-2">
@@ -72,7 +95,9 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
                   
                   <!-- Total por item -->
                   <div class="text-right mt-0.5">
-                    <span class="font-semibold text-sm text-foreground">PEN {{ (item.producto.precio * item.cantidad).toFixed(2) }}</span>
+                    <span class="price-text text-sm">
+                      <span class="currency">S/</span>{{ (item.producto.precio * item.cantidad).toFixed(2) }}
+                    </span>
                   </div>
                 </div>
               }
@@ -84,16 +109,18 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
           <div class="p-6 border-t bg-background sticky bottom-0 font-sans">
             <div class="flex justify-between items-center mb-4">
               <span class="text-sm font-medium text-muted-foreground">Subtotal</span>
-              <span class="text-xl font-bold tracking-tight text-foreground">PEN {{ cart.total().toFixed(2) }}</span>
+              <span class="price-text text-xl">
+                <span class="currency">S/</span>{{ cart.total().toFixed(2) }}
+              </span>
             </div>
             <div class="flex flex-col gap-2">
               <!-- Si ya está autenticado, ir directo a checkout; si no, mostrar dialogo de login -->
-              @if (auth.isAuthenticated()) {
+              @if (customerAuth.isAuthenticated()) {
                 <button hlmBtn class="w-full font-semibold" (click)="ctx.close()" routerLink="/checkout">
                   Proceder al pago
                 </button>
               } @else {
-                <app-user-login-dialog />
+                <app-user-login-dialog triggerLabel="Iniciar sesion para pagar" />
               }
               <button hlmBtn variant="outline" class="w-full font-medium" (click)="ctx.close()" routerLink="/carrito">
                 Ver carrito completo
@@ -107,5 +134,5 @@ import { UserLoginDialogComponent } from '../user-login-dialog/user-login-dialog
 })
 export class CartSheetComponent {
   readonly cart = inject(CartStore);
-  readonly auth = inject(AuthService);
+  readonly customerAuth = inject(CustomerAuthService);
 }

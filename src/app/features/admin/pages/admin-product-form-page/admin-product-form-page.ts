@@ -7,15 +7,13 @@ import { Categoria } from '../../../../core/models/categoria.model';
 import { ProductoRequest } from '../../../../core/models/producto.model';
 import { CategoriaService } from '../../../../core/services/categoria.service';
 import { ProductoService } from '../../../../core/services/producto.service';
-import { AdminNav } from '../../components/admin-nav/admin-nav';
 import { ProductForm } from '../../components/product-form/product-form';
 
 @Component({
   selector: 'app-admin-product-form-page',
-  imports: [AdminNav, ProductForm],
+  imports: [ProductForm],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-admin-nav />
     <section class="section-heading">
       <p class="eyebrow">Producto</p>
       <h1>{{ productId() ? 'Editar producto' : 'Nuevo producto' }}</h1>

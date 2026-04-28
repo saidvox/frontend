@@ -1,6 +1,7 @@
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { Observable, Subject, tap } from 'rxjs';
 
 import { apiUrl } from '../config/api.config';
 import {
@@ -14,12 +15,32 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ProductoService {
   private readonly http = inject(HttpClient);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly productChangesSubject = new Subject<void>();
+  private readonly channel = this.createChannel();
+
+  readonly productChanges$ = this.productChangesSubject.asObservable();
+
+  constructor() {
+    if (this.channel) {
+      this.channel.onmessage = (event) => {
+        if (event.data === 'products:changed') {
+          this.productChangesSubject.next();
+        }
+      };
+    }
+  }
 
   listar(filtros: ProductoFiltros = {}): Observable<Page<Producto>> {
     let params = new HttpParams();
 
     if (filtros.categoria) {
       params = params.set('categoria', filtros.categoria);
+    }
+
+    const nombre = filtros.nombre?.trim();
+    if (nombre) {
+      params = params.set('nombre', nombre);
     }
 
     if (filtros.activos !== null && filtros.activos !== undefined) {
@@ -46,14 +67,33 @@ export class ProductoService {
   }
 
   crear(request: ProductoRequest): Observable<Producto> {
-    return this.http.post<Producto>(apiUrl('/productos'), request);
+    return this.http.post<Producto>(apiUrl('/productos'), request).pipe(
+      tap(() => this.notifyProductChanges()),
+    );
   }
 
   actualizar(id: number, request: ProductoRequest): Observable<Producto> {
-    return this.http.put<Producto>(apiUrl(`/productos/${id}`), request);
+    return this.http.put<Producto>(apiUrl(`/productos/${id}`), request).pipe(
+      tap(() => this.notifyProductChanges()),
+    );
   }
 
   desactivar(id: number): Observable<void> {
-    return this.http.delete<void>(apiUrl(`/productos/${id}`));
+    return this.http.delete<void>(apiUrl(`/productos/${id}`)).pipe(
+      tap(() => this.notifyProductChanges()),
+    );
+  }
+
+  private notifyProductChanges(): void {
+    this.productChangesSubject.next();
+    this.channel?.postMessage('products:changed');
+  }
+
+  private createChannel(): BroadcastChannel | null {
+    if (!isPlatformBrowser(this.platformId) || typeof BroadcastChannel === 'undefined') {
+      return null;
+    }
+
+    return new BroadcastChannel('cafe-de-barrio-products');
   }
 }

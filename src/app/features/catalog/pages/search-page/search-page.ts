@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
@@ -98,6 +99,7 @@ export class SearchPage implements OnInit {
   private readonly searchService = inject(SearchService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly cart = inject(CartStore);
 
   readonly productPage = signal<Page<Producto> | null>(null);
@@ -121,6 +123,9 @@ export class SearchPage implements OnInit {
 
   ngOnInit(): void {
     this.loadCategories();
+    this.productoService.productChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadProducts());
     
     // Leer parametro de la URL si se viene desde "Ver mas" de la Landing
     this.route.queryParams.subscribe(params => {

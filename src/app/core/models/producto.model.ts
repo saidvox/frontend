@@ -24,6 +24,7 @@ export interface ProductoRequest {
 
 export interface ProductoFiltros {
   categoria?: number | null;
+  nombre?: string | null;
   activos?: boolean | null;
   disponible?: boolean | null;
   page?: number;
