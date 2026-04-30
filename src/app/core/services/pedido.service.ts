@@ -4,10 +4,14 @@ import { Observable } from 'rxjs';
 
 import { apiUrl } from '../config/api.config';
 import { EstadoPedido, Pedido, PedidoRequest } from '../models/pedido.model';
+import { RealtimeService } from './realtime.service';
 
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
   private readonly http = inject(HttpClient);
+  private readonly realtimeService = inject(RealtimeService);
+
+  readonly orderChanges$ = this.realtimeService.events('/realtime/admin/pedidos', { auth: true });
 
   listar(estado?: EstadoPedido | null): Observable<Pedido[]> {
     const params = estado ? new HttpParams().set('estado', estado) : undefined;

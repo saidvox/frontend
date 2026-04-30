@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -63,6 +64,7 @@ type OrderFilter = 'TODOS' | EstadoPedido;
 })
 export class AdminOrdersPage implements OnInit {
   private readonly pedidoService = inject(PedidoService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly orders = signal<Pedido[]>([]);
   readonly loading = signal(false);
@@ -79,6 +81,18 @@ export class AdminOrdersPage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.pedidoService.orderChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((message) => {
+        if (message.type !== 'orders-changed') {
+          return;
+        }
+
+        this.load(false);
+        toast.info('Pedidos actualizados', {
+          description: 'Se recibio un cambio en tiempo real.',
+        });
+      });
   }
 
   updateStatus(id: number, estado: EstadoPedido): void {
@@ -95,16 +109,23 @@ export class AdminOrdersPage implements OnInit {
     });
   }
 
-  load(): void {
-    this.loading.set(true);
+  load(showLoading = true): void {
+    if (showLoading) {
+      this.loading.set(true);
+    }
+
     this.pedidoService.listar().subscribe({
       next: (orders) => {
         this.orders.set(orders);
-        this.loading.set(false);
+        if (showLoading) {
+          this.loading.set(false);
+        }
       },
       error: () => {
         this.orders.set([]);
-        this.loading.set(false);
+        if (showLoading) {
+          this.loading.set(false);
+        }
       },
     });
   }

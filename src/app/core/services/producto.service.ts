@@ -11,11 +11,13 @@ import {
   ProductoFiltros,
   ProductoRequest,
 } from '../models/producto.model';
+import { RealtimeService } from './realtime.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProductoService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly realtimeService = inject(RealtimeService);
   private readonly productChangesSubject = new Subject<void>();
   private readonly channel = this.createChannel();
 
@@ -25,10 +27,16 @@ export class ProductoService {
     if (this.channel) {
       this.channel.onmessage = (event) => {
         if (event.data === 'products:changed') {
-          this.productChangesSubject.next();
+          this.emitProductChanges(false);
         }
       };
     }
+
+    this.realtimeService.events('/realtime/catalogo').subscribe((message) => {
+      if (message.type === 'catalog-changed') {
+        this.emitProductChanges(false);
+      }
+    });
   }
 
   listar(filtros: ProductoFiltros = {}): Observable<Page<Producto>> {
@@ -85,8 +93,15 @@ export class ProductoService {
   }
 
   private notifyProductChanges(): void {
+    this.emitProductChanges(true);
+  }
+
+  private emitProductChanges(broadcast: boolean): void {
     this.productChangesSubject.next();
-    this.channel?.postMessage('products:changed');
+
+    if (broadcast) {
+      this.channel?.postMessage('products:changed');
+    }
   }
 
   private createChannel(): BroadcastChannel | null {
